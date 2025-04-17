@@ -121,7 +121,7 @@ const Employees = () => {
 
       const apiData = {
         ...employeeData,
-        third_party_info: employeeData.thirdPartyInfo || null
+        third_party_info: employeeData.thirdPartyInfo ? JSON.stringify(employeeData.thirdPartyInfo) : null
       };
 
       const url = editingEmployee 
@@ -142,6 +142,16 @@ const Employees = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditEmployee = (employee) => {
+    setEditingEmployee(employee);
+    setIsFormOpen(true);
+  };
+
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setEditingEmployee(null);
   };
 
   const handleDeleteEmployee = async (employeeId) => {
@@ -206,27 +216,18 @@ const Employees = () => {
   const statuses = ['active', 'on_leave', 'terminated'];
 
   return (
-    <div className="space-y-6 p-6 bg-gray-50">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Employee Management</h1>
-          <p className="text-gray-500 mt-1">Add, edit, and manage employee information</p>
-        </div>
-        <div className="flex gap-4">
-          <button 
-            onClick={() => {
-              setEditingEmployee(null);
-              setIsFormOpen(true);
-            }}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium flex items-center"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-            </svg>
-            Add Employee
-          </button>
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Employees</h1>
+        <button
+          onClick={() => {
+            setEditingEmployee(null);
+            setIsFormOpen(true);
+          }}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+        >
+          Add Employee
+        </button>
       </div>
 
       {/* Search and Filters */}
@@ -311,16 +312,11 @@ const Employees = () => {
         <>
           {/* Employee Form */}
           {isFormOpen && (
-            <div className="bg-white p-6 rounded-xl shadow-sm">
-              <EmployeeForm
-                employee={editingEmployee}
-                onSubmit={handleAddEmployee}
-                onCancel={() => {
-                  setIsFormOpen(false);
-                  setEditingEmployee(null);
-                }}
-              />
-            </div>
+            <EmployeeForm
+              employee={editingEmployee}
+              onSubmit={handleAddEmployee}
+              onClose={handleCloseForm}
+            />
           )}
 
           {/* Third Party Form */}
@@ -339,10 +335,7 @@ const Employees = () => {
           <div className="bg-white rounded-xl shadow-sm">
             <EmployeeList
               employees={filteredEmployees}
-              onEdit={(employee) => {
-                setEditingEmployee(employee);
-                setIsFormOpen(true);
-              }}
+              onEdit={handleEditEmployee}
               onDelete={handleDeleteEmployee}
             />
           </div>

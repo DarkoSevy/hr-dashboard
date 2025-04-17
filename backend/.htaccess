@@ -1,10 +1,6 @@
 # Enable rewrite engine
 RewriteEngine On
 
-# Handle Authorization Header
-RewriteCond %{HTTP:Authorization} .
-RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-
 # Redirect all requests to index.php
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME} !-f
@@ -14,29 +10,6 @@ RewriteRule ^ index.php [L]
 Header set X-Content-Type-Options "nosniff"
 Header set X-XSS-Protection "1; mode=block"
 Header set X-Frame-Options "SAMEORIGIN"
-
-# CORS headers
-Header always set Access-Control-Allow-Origin "*"
-Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-Header always set Access-Control-Allow-Headers "Authorization, Content-Type, X-Requested-With"
-Header always set Access-Control-Max-Age "86400"
-
-# Allow directory listing
-Options +Indexes
-
-# Allow access to all files
-<Directory />
-    Options FollowSymLinks
-    AllowOverride All
-    Require all granted
-</Directory>
-
-# Allow access to specific directories
-<Directory "C:/xampp/htdocs/hr-dasboard/backend">
-    Options Indexes FollowSymLinks
-    AllowOverride All
-    Require all granted
-</Directory>
 
 # Set default handler
 DirectoryIndex index.php index.html 

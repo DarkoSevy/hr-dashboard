@@ -131,28 +131,42 @@ class Task {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    public function getTotalCount() {
+        $query = "SELECT COUNT(*) as total FROM " . $this->table_name;
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['total'];
+    }
+
     public function getCompletedCount() {
-        $query = "SELECT COUNT(*) as total FROM tasks WHERE status = 'completed'";
-        $result = $this->conn->query($query);
-        return $result->fetch_assoc()['total'];
+        $query = "SELECT COUNT(*) as completed FROM " . $this->table_name . " WHERE status = 'completed'";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['completed'];
     }
 
     public function getPendingCount() {
-        $query = "SELECT COUNT(*) as total FROM tasks WHERE status = 'pending'";
-        $result = $this->conn->query($query);
-        return $result->fetch_assoc()['total'];
+        $query = "SELECT COUNT(*) as pending FROM " . $this->table_name . " WHERE status = 'pending'";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['pending'];
     }
 
     public function getOverdueCount() {
-        $query = "SELECT COUNT(*) as total FROM tasks 
-                 WHERE status = 'pending' 
-                 AND due_date < CURDATE()";
-        $result = $this->conn->query($query);
-        return $result->fetch_assoc()['total'];
+        $query = "SELECT COUNT(*) as overdue FROM " . $this->table_name . " 
+                 WHERE status != 'completed' AND due_date < CURDATE()";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['overdue'];
     }
 
     public function getStats() {
         return [
+            'total' => $this->getTotalCount(),
             'completed' => $this->getCompletedCount(),
             'pending' => $this->getPendingCount(),
             'overdue' => $this->getOverdueCount()

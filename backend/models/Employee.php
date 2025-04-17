@@ -1,12 +1,13 @@
 <?php
 require_once __DIR__ . '/../config/Database.php';
-require_once __DIR__ . '/../utils/Redis.php';
+require_once __DIR__ . '/../utils/RedisClient.php';
 
 class Employee {
     private $conn;
     private $table = 'employees';
     private $redis;
     private $cacheExpiry = 3600; // 1 hour cache expiry
+    private $useCache = true;
     
     // Cache key prefixes
     private const CACHE_KEY_ALL = 'employees:all';
@@ -18,47 +19,82 @@ class Employee {
         try {
             $database = new Database();
             $this->conn = $database->connect();
-            $this->redis = Redis::getInstance();
+            
+            try {
+                $this->redis = RedisClient::getInstance();
+            } catch (Exception $e) {
+                error_log("Redis initialization failed: " . $e->getMessage());
+                $this->useCache = false;
+            }
         } catch (Exception $e) {
             error_log("Employee Model Error: " . $e->getMessage());
             throw new Exception("Failed to initialize Employee model");
         }
     }
 
+    private function getFromCache($key) {
+        if (!$this->useCache) return null;
+        try {
+            return $this->redis->get($key);
+        } catch (Exception $e) {
+            error_log("Redis get failed for key {$key}: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function setInCache($key, $value, $expiry = null) {
+        if (!$this->useCache) return false;
+        try {
+            return $this->redis->set($key, $value, $expiry ?: $this->cacheExpiry);
+        } catch (Exception $e) {
+            error_log("Redis set failed for key {$key}: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    private function deleteFromCache($key) {
+        if (!$this->useCache) return false;
+        try {
+            return $this->redis->delete($key);
+        } catch (Exception $e) {
+            error_log("Redis delete failed for key {$key}: " . $e->getMessage());
+            return false;
+        }
+    }
+
     private function clearListCache() {
-        // Clear only list-related caches
-        $this->redis->delete(self::CACHE_KEY_ALL);
+        $this->deleteFromCache(self::CACHE_KEY_ALL);
     }
 
     private function clearStatsCache() {
-        // Clear statistical caches
-        $this->redis->delete(self::CACHE_KEY_STATS . 'total');
-        $this->redis->delete(self::CACHE_KEY_STATS . 'new_hires');
-        $this->redis->delete(self::CACHE_KEY_STATS . 'resigned');
+        $this->deleteFromCache(self::CACHE_KEY_STATS . 'total');
+        $this->deleteFromCache(self::CACHE_KEY_STATS . 'active');
+        $this->deleteFromCache(self::CACHE_KEY_STATS . 'all');
+        $this->deleteFromCache(self::CACHE_KEY_STATS . 'new_hires');
+        $this->deleteFromCache(self::CACHE_KEY_STATS . 'resigned');
     }
 
     private function clearMetricsCache() {
-        // Clear metrics caches
-        $this->redis->delete(self::CACHE_KEY_METRICS . 'growth');
-        $this->redis->delete(self::CACHE_KEY_METRICS . 'monthly_attendance');
-        $this->redis->delete(self::CACHE_KEY_METRICS . 'work_format');
+        $this->deleteFromCache(self::CACHE_KEY_METRICS . 'growth');
+        $this->deleteFromCache(self::CACHE_KEY_METRICS . 'monthly_attendance');
+        $this->deleteFromCache(self::CACHE_KEY_METRICS . 'work_format');
     }
 
     public function getAll() {
         try {
             // Try to get from cache first
-            $cached = $this->redis->get(self::CACHE_KEY_ALL);
+            $cached = $this->getFromCache(self::CACHE_KEY_ALL);
             if ($cached !== null) {
                 return $cached;
             }
 
-            $query = "SELECT * FROM " . $this->table;
+            $query = "SELECT * FROM " . $this->table . " WHERE deleted_at IS NULL";
             $stmt = $this->conn->prepare($query);
             $stmt->execute();
             $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Cache the result with pipeline for better performance
-            $this->redis->set(self::CACHE_KEY_ALL, $employees, $this->cacheExpiry);
+            // Cache the result
+            $this->setInCache(self::CACHE_KEY_ALL, $employees);
             return $employees;
         } catch (PDOException $e) {
             error_log("Get All Employees Error: " . $e->getMessage());
@@ -68,13 +104,13 @@ class Employee {
 
     public function getById($id) {
         try {
-            $cacheKey = self::CACHE_KEY_EMPLOYEE . $id;
+            // $cacheKey = self::CACHE_KEY_EMPLOYEE . $id;
             
             // Try to get from cache first
-            $cached = $this->redis->get($cacheKey);
-            if ($cached !== null) {
-                return $cached;
-            }
+            // $cached = $this->redis->get($cacheKey);
+            // if ($cached !== null) {
+            //     return $cached;
+            // }
 
             $query = "SELECT * FROM " . $this->table . " WHERE id = :id";
             $stmt = $this->conn->prepare($query);
@@ -82,10 +118,10 @@ class Employee {
             $stmt->execute();
             $employee = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($employee) {
-                // Cache the result
-                $this->redis->set($cacheKey, $employee, $this->cacheExpiry);
-            }
+            // if ($employee) {
+            //     // Cache the result
+            //     $this->redis->set($cacheKey, $employee, $this->cacheExpiry);
+            // }
             return $employee;
         } catch (PDOException $e) {
             error_log("Get Employee By ID Error: " . $e->getMessage());
@@ -113,11 +149,11 @@ class Employee {
             $stmt->bindParam(':third_party_info', $third_party_info);
             
             $result = $stmt->execute();
-            if ($result) {
-                // Only clear relevant caches
-                $this->clearListCache();
-                $this->clearStatsCache();
-            }
+            // if ($result) {
+            //     // Only clear relevant caches
+            //     $this->clearListCache();
+            //     $this->clearStatsCache();
+            // }
             return $result;
         } catch (PDOException $e) {
             error_log("Create Employee Error: " . $e->getMessage());
@@ -156,21 +192,21 @@ class Employee {
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             
             $result = $stmt->execute();
-            if ($result) {
-                // Clear individual employee cache
-                $this->redis->delete(self::CACHE_KEY_EMPLOYEE . $id);
+            // if ($result) {
+            //     // Clear individual employee cache
+            //     $this->redis->delete(self::CACHE_KEY_EMPLOYEE . $id);
                 
-                // Clear list cache only if relevant fields changed
-                if ($this->hasRelevantChanges($currentEmployee, $data)) {
-                    $this->clearListCache();
-                }
+            //     // Clear list cache only if relevant fields changed
+            //     if ($this->hasRelevantChanges($currentEmployee, $data)) {
+            //         $this->clearListCache();
+            //     }
                 
-                // Clear stats cache only if status changed
-                if ($currentEmployee['status'] !== $data['status']) {
-                    $this->clearStatsCache();
-                    $this->clearMetricsCache();
-                }
-            }
+            //     // Clear stats cache only if status changed
+            //     if ($currentEmployee['status'] !== $data['status']) {
+            //         $this->clearStatsCache();
+            //         $this->clearMetricsCache();
+            //     }
+            // }
             return $result;
         } catch (PDOException $e) {
             error_log("Update Employee Error: " . $e->getMessage());
@@ -190,32 +226,127 @@ class Employee {
 
     public function getTotalCount() {
         try {
-            $cacheKey = self::CACHE_KEY_STATS . 'total';
-            
             // Try to get from cache first
-            $cached = $this->redis->get($cacheKey);
+            $cached = $this->getFromCache(self::CACHE_KEY_STATS . 'total');
             if ($cached !== null) {
                 return (int)$cached;
             }
 
-            $query = "SELECT COUNT(*) as total FROM " . $this->table . " WHERE status = 'active'";
-            $stmt = $this->conn->query($query);
+            // If not in cache, calculate from database
+            $query = "SELECT COUNT(*) as total FROM " . $this->table . " WHERE deleted_at IS NULL";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             $total = (int)$result['total'];
 
-            // Cache the result with a shorter expiry for frequently changing data
-            $this->redis->set($cacheKey, $total, 1800); // 30 minutes
+            // Cache the result
+            $this->setInCache(self::CACHE_KEY_STATS . 'total', $total);
+
             return $total;
-        } catch (PDOException $e) {
-            error_log("Get Total Count Error: " . $e->getMessage());
-            return 0; // Return 0 instead of throwing to handle gracefully
+        } catch (Exception $e) {
+            error_log("Error getting total employee count: " . $e->getMessage());
+            throw new Exception("Failed to get total employee count");
         }
+    }
+
+    public function getActiveCount() {
+        try {
+            // Try to get from cache first
+            $cached = $this->getFromCache(self::CACHE_KEY_STATS . 'active');
+            if ($cached !== null) {
+                return (int)$cached;
+            }
+
+            // If not in cache, calculate from database
+            $query = "SELECT COUNT(*) as total FROM " . $this->table . " 
+                     WHERE status = 'active' AND deleted_at IS NULL";
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $total = (int)$result['total'];
+
+            // Cache the result
+            $this->setInCache(self::CACHE_KEY_STATS . 'active', $total);
+
+            return $total;
+        } catch (Exception $e) {
+            error_log("Error getting active employee count: " . $e->getMessage());
+            throw new Exception("Failed to get active employee count");
+        }
+    }
+
+    public function getStats() {
+        try {
+            // Try to get from cache first
+            $cached = $this->getFromCache(self::CACHE_KEY_STATS . 'all');
+            if ($cached !== null) {
+                return $cached;
+            }
+
+            $query = "SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN status = 'active' AND deleted_at IS NULL THEN 1 ELSE 0 END) as active,
+                SUM(CASE WHEN status != 'active' OR deleted_at IS NOT NULL THEN 1 ELSE 0 END) as inactive
+            FROM " . $this->table;
+            
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            $stats = [
+                'total' => (int)$result['total'],
+                'active' => (int)$result['active'],
+                'inactive' => (int)$result['inactive']
+            ];
+
+            // Cache the result
+            $this->setInCache(self::CACHE_KEY_STATS . 'all', $stats);
+
+            return $stats;
+        } catch (Exception $e) {
+            error_log("Error getting employee stats: " . $e->getMessage());
+            return [
+                'total' => 0,
+                'active' => 0,
+                'inactive' => 0
+            ];
+        }
+    }
+
+    public function getMonthlyAttendance() {
+        $sql = "SELECT 
+                    DATE_FORMAT(created_at, '%Y-%m') as month,
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) as present,
+                    SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absent
+                FROM attendance
+                GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+                ORDER BY month DESC
+                LIMIT 6";
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getWorkFormatDistribution() {
+        $sql = "SELECT 
+                    work_format,
+                    COUNT(*) as count
+                FROM employees
+                GROUP BY work_format";
+        
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getNewHiresCount() {
         try {
             // Try to get from cache first
-            $cached = $this->redis->get('employees:new_hires');
+            $cached = $this->getFromCache('employees:new_hires');
             if ($cached !== null) {
                 return $cached;
             }
@@ -228,7 +359,7 @@ class Employee {
             $total = $result['total'];
 
             // Cache the result
-            $this->redis->set('employees:new_hires', $total, $this->cacheExpiry);
+            $this->setInCache('employees:new_hires', $total);
             return $total;
         } catch (PDOException $e) {
             error_log("Get New Hires Count Error: " . $e->getMessage());
@@ -239,7 +370,7 @@ class Employee {
     public function getResignedCount() {
         try {
             // Try to get from cache first
-            $cached = $this->redis->get('employees:resigned');
+            $cached = $this->getFromCache('employees:resigned');
             if ($cached !== null) {
                 return $cached;
             }
@@ -252,7 +383,7 @@ class Employee {
             $total = $result['total'];
 
             // Cache the result
-            $this->redis->set('employees:resigned', $total, $this->cacheExpiry);
+            $this->setInCache('employees:resigned', $total);
             return $total;
         } catch (PDOException $e) {
             error_log("Get Resigned Count Error: " . $e->getMessage());
@@ -263,7 +394,7 @@ class Employee {
     public function calculateGrowth() {
         try {
             // Try to get from cache first
-            $cached = $this->redis->get('employees:growth');
+            $cached = $this->getFromCache('employees:growth');
             if ($cached !== null) {
                 return $cached;
             }
@@ -280,84 +411,11 @@ class Employee {
                 round((($currentTotal - $prevTotal) / $prevTotal) * 100, 1) : 0;
 
             // Cache the result
-            $this->redis->set('employees:growth', $growth, $this->cacheExpiry);
+            $this->setInCache('employees:growth', $growth);
             return $growth;
         } catch (PDOException $e) {
             error_log("Calculate Growth Error: " . $e->getMessage());
             throw new Exception("Failed to calculate growth");
-        }
-    }
-
-    public function getMonthlyAttendance() {
-        try {
-            // Try to get from cache first
-            $cached = $this->redis->get('employees:monthly_attendance');
-            if ($cached !== null) {
-                return $cached;
-            }
-
-            $query = "SELECT 
-                        DATE_FORMAT(date, '%Y-%m') as month,
-                        SUM(CASE WHEN status = 'present' THEN 1 ELSE 0 END) as present,
-                        SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absent
-                    FROM attendance
-                    WHERE date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
-                    GROUP BY DATE_FORMAT(date, '%Y-%m')
-                    ORDER BY month";
-
-            $stmt = $this->conn->query($query);
-            $data = [];
-
-            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                $data[] = [
-                    'month' => date('M Y', strtotime($row['month'] . '-01')),
-                    'present' => (int)$row['present'],
-                    'absent' => (int)$row['absent']
-                ];
-            }
-
-            // Cache the result
-            $this->redis->set('employees:monthly_attendance', $data, $this->cacheExpiry);
-            return $data;
-        } catch (PDOException $e) {
-            error_log("Get Monthly Attendance Error: " . $e->getMessage());
-            throw new Exception("Failed to get monthly attendance");
-        }
-    }
-
-    public function getWorkFormatDistribution() {
-        try {
-            $cacheKey = self::CACHE_KEY_METRICS . 'work_format';
-            
-            // Try to get from cache first
-            $cached = $this->redis->get($cacheKey);
-            if ($cached !== null) {
-                return $cached;
-            }
-
-            $query = "SELECT 
-                        work_format as format,
-                        COUNT(*) as count
-                    FROM " . $this->table . "
-                    WHERE status = 'active'
-                    GROUP BY work_format";
-
-            $stmt = $this->conn->query($query);
-            $data = [];
-
-            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                $data[] = [
-                    'name' => ucfirst($row['format']),
-                    'value' => (int)$row['count']
-                ];
-            }
-
-            // Cache the result
-            $this->redis->set($cacheKey, $data, $this->cacheExpiry);
-            return $data;
-        } catch (PDOException $e) {
-            error_log("Get Work Format Distribution Error: " . $e->getMessage());
-            return []; // Return empty array instead of throwing to handle gracefully
         }
     }
 }

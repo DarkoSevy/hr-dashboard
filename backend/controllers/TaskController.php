@@ -1,45 +1,60 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: POST, GET, PUT, DELETE");
-header("Access-Control-Max-Age: 3600");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-
 include_once '../config/database.php';
 include_once '../models/Task.php';
 
-$database = new Database();
-$db = $database->getConnection();
+class TaskController {
+    private $taskModel;
 
-$task = new Task($db);
+    public function __construct() {
+        $database = new Database();
+        $db = $database->getConnection();
+        $this->taskModel = new Task($db);
+    }
 
-$method = $_SERVER['REQUEST_METHOD'];
-$request = $_SERVER['REQUEST_URI'];
+    public function handleRequest() {
+        try {
+            switch ($_SERVER['REQUEST_METHOD']) {
+                case 'GET':
+                    $this->getAll();
+                    break;
+                case 'POST':
+                    $this->create();
+                    break;
+                case 'PUT':
+                    $this->update();
+                    break;
+                case 'DELETE':
+                    $this->delete();
+                    break;
+                default:
+                    throw new Exception('Method not allowed', 405);
+            }
+        } catch (Exception $e) {
+            http_response_code($e->getCode() ?: 500);
+            echo json_encode([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
 
-// Get query parameters
-$query_params = parse_url($request, PHP_URL_QUERY);
-parse_str($query_params, $params);
+    private function getAll() {
+        $query_params = parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY);
+        parse_str($query_params, $params);
 
-switch($method) {
-    case 'GET':
-        // Check if status filter is provided
         if(isset($params['status'])) {
-            $stmt = $task->readByStatus($params['status']);
-        }
-        // Check if assignee filter is provided
-        else if(isset($params['assignee_id'])) {
-            $stmt = $task->readByAssignee($params['assignee_id']);
-        }
-        // Get task stats if requested
-        else if(isset($params['stats']) && $params['stats'] == 'true') {
-            $stats = $task->getTaskStats();
-            http_response_code(200);
-            echo json_encode($stats);
-            exit;
-        }
-        // Get all tasks
-        else {
-            $stmt = $task->read();
+            $stmt = $this->taskModel->readByStatus($params['status']);
+        } else if(isset($params['assignee_id'])) {
+            $stmt = $this->taskModel->readByAssignee($params['assignee_id']);
+        } else if(isset($params['stats']) && $params['stats'] == 'true') {
+            $stats = $this->taskModel->getTaskStats();
+            echo json_encode([
+                'status' => 'success',
+                'data' => $stats
+            ]);
+            return;
+        } else {
+            $stmt = $this->taskModel->read();
         }
 
         $num = $stmt->rowCount();
@@ -62,65 +77,78 @@ switch($method) {
                 );
                 array_push($tasks_arr["records"], $task_item);
             }
-            http_response_code(200);
-            echo json_encode($tasks_arr);
+            echo json_encode([
+                'status' => 'success',
+                'data' => $tasks_arr
+            ]);
         } else {
-            http_response_code(404);
-            echo json_encode(array("message" => "No tasks found."));
+            throw new Exception('No tasks found', 404);
         }
-        break;
+    }
 
-    case 'POST':
-        $data = json_decode(file_get_contents("php://input"));
+    private function create() {
+        $data = json_decode(file_get_contents("php://input"), true);
+        if (!$data) {
+            throw new Exception('Invalid input data', 400);
+        }
 
-        $task->title = $data->title;
-        $task->description = $data->description;
-        $task->status = $data->status;
-        $task->priority = $data->priority;
-        $task->due_date = $data->due_date;
-        $task->assignee_id = $data->assignee_id;
+        $this->taskModel->title = $data['title'];
+        $this->taskModel->description = $data['description'];
+        $this->taskModel->status = $data['status'];
+        $this->taskModel->priority = $data['priority'];
+        $this->taskModel->due_date = $data['due_date'];
+        $this->taskModel->assignee_id = $data['assignee_id'];
 
-        if($task->create()) {
-            http_response_code(201);
-            echo json_encode(array("message" => "Task was created."));
+        if($this->taskModel->create()) {
+            echo json_encode([
+                'status' => 'success',
+                'message' => 'Task created successfully'
+            ]);
         } else {
-            http_response_code(503);
-            echo json_encode(array("message" => "Unable to create task."));
+            throw new Exception('Unable to create task', 503);
         }
-        break;
+    }
 
-    case 'PUT':
-        $data = json_decode(file_get_contents("php://input"));
+    private function update() {
+        $data = json_decode(file_get_contents("php://input"), true);
+        if (!$data || !isset($data['id'])) {
+            throw new Exception('Invalid input data', 400);
+        }
 
-        $task->id = $data->id;
-        $task->title = $data->title;
-        $task->description = $data->description;
-        $task->status = $data->status;
-        $task->priority = $data->priority;
-        $task->due_date = $data->due_date;
-        $task->assignee_id = $data->assignee_id;
+        $this->taskModel->id = $data['id'];
+        $this->taskModel->title = $data['title'];
+        $this->taskModel->description = $data['description'];
+        $this->taskModel->status = $data['status'];
+        $this->taskModel->priority = $data['priority'];
+        $this->taskModel->due_date = $data['due_date'];
+        $this->taskModel->assignee_id = $data['assignee_id'];
 
-        if($task->update()) {
-            http_response_code(200);
-            echo json_encode(array("message" => "Task was updated."));
+        if($this->taskModel->update()) {
+            echo json_encode([
+                'status' => 'success',
+                'message' => 'Task updated successfully'
+            ]);
         } else {
-            http_response_code(503);
-            echo json_encode(array("message" => "Unable to update task."));
+            throw new Exception('Unable to update task', 503);
         }
-        break;
+    }
 
-    case 'DELETE':
-        $data = json_decode(file_get_contents("php://input"));
+    private function delete() {
+        $data = json_decode(file_get_contents("php://input"), true);
+        if (!$data || !isset($data['id'])) {
+            throw new Exception('Invalid input data', 400);
+        }
 
-        $task->id = $data->id;
+        $this->taskModel->id = $data['id'];
 
-        if($task->delete()) {
-            http_response_code(200);
-            echo json_encode(array("message" => "Task was deleted."));
+        if($this->taskModel->delete()) {
+            echo json_encode([
+                'status' => 'success',
+                'message' => 'Task deleted successfully'
+            ]);
         } else {
-            http_response_code(503);
-            echo json_encode(array("message" => "Unable to delete task."));
+            throw new Exception('Unable to delete task', 503);
         }
-        break;
+    }
 }
 ?> 
