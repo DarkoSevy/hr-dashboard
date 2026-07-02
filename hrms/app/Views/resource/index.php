@@ -42,6 +42,13 @@ $format = function (string $col, $value) use ($fields, $labels) {
           <?php endforeach ?>
           <td class="text-end text-nowrap">
             <?php if ($canManage): ?>
+              <?php foreach ($cfg['row_actions'] ?? [] as [$act, $icon, $titleText]): ?>
+                <form method="post" action="<?= url($module . '/' . $row['id'] . '/' . $act) ?>" class="d-inline"
+                      data-confirm="<?= e($titleText) ?> — proceed?">
+                  <?= csrf_field() ?>
+                  <button class="btn btn-sm btn-emerald" title="<?= e($titleText) ?>"><i class="bi bi-<?= e($icon) ?>"></i></button>
+                </form>
+              <?php endforeach ?>
               <a href="<?= url($module . '/' . $row['id'] . '/edit') ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
               <form method="post" action="<?= url($module . '/' . $row['id'] . '/delete') ?>" class="d-inline"
                     data-confirm="Delete this <?= e(rtrim($cfg['title'], 's')) ?> record?">

@@ -41,11 +41,13 @@ class App
         $isPost = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST';
 
         // Public routes (no auth)
-        if (in_array($module, ['login', 'logout', 'otp'], true)) {
+        if (in_array($module, ['login', 'logout', 'otp', 'forgot', 'reset'], true)) {
             $auth = new \App\Controllers\AuthController();
             match ($module) {
                 'login'  => $isPost ? $auth->attempt() : $auth->loginForm(),
                 'otp'    => $isPost ? $auth->verifyOtp() : $auth->otpForm(),
+                'forgot' => $isPost ? $auth->sendReset() : $auth->forgotForm(),
+                'reset'  => $isPost ? $auth->performReset() : $auth->resetForm(),
                 'logout' => $auth->logout(),
             };
             return;
@@ -139,8 +141,17 @@ class App
         session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax']);
         session_start();
 
-        // Idle-session timeout
-        $timeout = $this->config['app']['session_timeout_minutes'] * 60;
+        // Idle-session timeout: System Settings value wins, config is the fallback.
+        $minutes = $this->config['app']['session_timeout_minutes'];
+        try {
+            $stored = Database::scalar("SELECT value FROM settings WHERE `key` = 'session_timeout_minutes'");
+            if (is_numeric($stored) && (int) $stored > 0) {
+                $minutes = (int) $stored;
+            }
+        } catch (\Throwable) {
+            // DB unavailable — keep the configured default so login still renders.
+        }
+        $timeout = $minutes * 60;
         if (isset($_SESSION['_last_activity']) && time() - $_SESSION['_last_activity'] > $timeout) {
             session_unset();
             session_destroy();

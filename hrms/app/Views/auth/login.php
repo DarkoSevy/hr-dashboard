@@ -42,8 +42,8 @@
           Sign In <i class="bi bi-arrow-right ms-1"></i>
         </button>
       </form>
-      <p class="text-center text-muted small mt-4 mb-0">
-        Forgot your password? Contact the HR department.
+      <p class="text-center small mt-4 mb-0">
+        <a href="/forgot">Forgot your password?</a>
       </p>
     </div>
   </div>

@@ -24,8 +24,17 @@ filters the table on the current page.
 | Employee | Everyone | Self-service: leave, clock in/out, requests, own profile |
 | Auditor / Compliance Officer | Oversight | Read-only + audit trail; compliance also manages disciplinary & H&S |
 
+Lost your password? Use **Forgot your password?** on the sign-in page — a reset
+link valid for one hour is emailed to your account address.
+
 ## Employee self-service
 
+* **My Account** — avatar menu → My Account: change your password, update your
+  own contact details (phone, email, address, emergency contact — changes are
+  audit-logged), and switch email two-factor authentication on or off.
+* **My Payslips** — avatar menu → My Payslips: once Finance locks a payroll
+  period, your payslip appears here with a print-friendly view (use the
+  browser's Print → Save as PDF).
 * **My profile** — avatar menu → My Profile. Shows your details, documents,
   leave balances/history, assets, performance, training and (for drivers) your
   license and trip data. Ask HR to correct anything.
@@ -57,8 +66,15 @@ filters the table on the current page.
   any date. Late/absence reports live under Reports.
 * **Recruitment** — create a Vacancy (publish it), register Applicants, schedule
   Interviews with scores, issue Offers. Move applicants along the funnel via the
-  stage field; park good candidates in *Talent Pool*. Convert a hire by creating
-  the employee record and linking it on the applicant.
+  stage field; park good candidates in *Talent Pool*. To hire, click the
+  **convert** button on the applicant row: the employee record is created
+  automatically (number assigned, vacancy's department/position applied, accepted
+  offer's salary and start date used, CV moved into the document vault, leave
+  balances opened) and you land on the employee form to complete the details.
+* **Org chart** — People → Org Chart: the live reporting tree built from each
+  employee's manager, plus department cards with managers and headcount.
+* **HR calendar** — Time & Pay → HR Calendar: month view of public holidays,
+  approved leave and training sessions; browse months with the arrows.
 * **Payroll preparation** — Payroll → pick a month → *Generate*: entries are
   created for all active staff with RSSB (6 % employee / 8 % employer) and PAYE
   (0/10/20/30 % monthly brackets) precomputed. Edit a row to add allowances,
@@ -87,3 +103,17 @@ filters the table on the current page.
 The bell icon shows unread items: leave decisions, approval requests, and (when
 email is configured) the same messages by email. Expiry warnings for contracts,
 licenses, medical certificates and insurance appear on the executive dashboard.
+
+With the daily notifier scheduled (see the installation guide), HR and the
+affected employee are automatically alerted about: expiring contracts, driving
+licenses, permits, driver medical exams, medical insurance, vault documents and
+training certificates; probation periods ending; today's birthdays; upcoming
+training; and (on the 5th of each month, to HR/Finance) the RSSB declaration
+deadline. The same job marks unexplained no-shows as absent and expires overdue
+contracts.
+
+## System settings (administrators)
+
+Insight & Admin → Settings: company identity, password expiry, session timeout,
+the expiry-alert window, and RSSB contribution rates. Changes apply immediately
+and are audit-logged.

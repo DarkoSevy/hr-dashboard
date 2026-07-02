@@ -15,7 +15,7 @@ use App\Core\Database;
  */
 class ResourceController extends Controller
 {
-    public function __construct(private string $module, private array $cfg)
+    public function __construct(protected string $module, protected array $cfg)
     {
     }
 

@@ -14,6 +14,7 @@ $nav = [
     ],
     'People' => [
         ['employees', 'people-fill', 'Employees', 'employees.view'],
+        ['org-chart', 'diagram-2', 'Org Chart', 'employees.view'],
         ['departments', 'diagram-3', 'Departments', 'departments.manage'],
         ['positions', 'person-badge', 'Positions', 'departments.manage'],
         ['branches', 'geo-alt', 'Branches', 'departments.manage'],
@@ -22,6 +23,7 @@ $nav = [
     ],
     'Time & Pay' => [
         ['leaves', 'calendar2-week', 'Leave', 'leaves.request'],
+        ['calendar', 'calendar3', 'HR Calendar', 'leaves.request'],
         ['attendance', 'fingerprint', 'Attendance', 'attendance.clock'],
         ['shifts', 'clock-history', 'Shifts', 'attendance.view'],
         ['holidays', 'calendar-heart', 'Holidays', 'leaves.view'],
@@ -57,6 +59,7 @@ $nav = [
         ['reports', 'clipboard-data', 'Reports', 'reports.view'],
         ['users', 'person-lock', 'User Accounts', 'users.manage'],
         ['audit', 'journal-text', 'Audit Trail', 'audit.view'],
+        ['settings', 'gear', 'Settings', 'settings.manage'],
     ],
 ];
 $flash = flash('');
@@ -132,6 +135,8 @@ $flash = flash('');
               <li><a class="dropdown-item" href="<?= url('employees/' . $user['emp_id']) ?>"><i class="bi bi-person me-2"></i>My Profile</a></li>
             <?php endif ?>
             <li><a class="dropdown-item" href="<?= url('leaves') ?>"><i class="bi bi-calendar2-week me-2"></i>My Leave</a></li>
+            <li><a class="dropdown-item" href="<?= url('account/payslips') ?>"><i class="bi bi-receipt me-2"></i>My Payslips</a></li>
+            <li><a class="dropdown-item" href="<?= url('account') ?>"><i class="bi bi-gear me-2"></i>My Account</a></li>
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item text-danger" href="<?= url('logout') ?>"><i class="bi bi-box-arrow-right me-2"></i>Sign Out</a></li>
           </ul>

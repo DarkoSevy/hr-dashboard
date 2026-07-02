@@ -102,7 +102,15 @@ class Auth
 
     public static function passwordExpired(array $user): bool
     {
+        // System Settings value wins, config is the fallback.
         $days = (int) ($GLOBALS['app_config']['app']['password_expiry_days'] ?? 90);
+        try {
+            $stored = Database::scalar("SELECT value FROM settings WHERE `key` = 'password_expiry_days'");
+            if (is_numeric($stored)) {
+                $days = (int) $stored;
+            }
+        } catch (\Throwable) {
+        }
         if (!$user['password_changed_at'] || $days <= 0) {
             return false;
         }

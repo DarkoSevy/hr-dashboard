@@ -98,7 +98,21 @@ PHP `mail()` is used.
 5. Verify HTTPS and that `/storage/...` URLs require login (open one logged out).
 6. Schedule backups (below).
 
-## 7. Backups
+## 7. Scheduled notifier (required for automatic alerts)
+
+`bin/notify.php` sends the expiry/birthday/probation/training/RSSB alerts and
+performs housekeeping (marks unexplained no-shows absent, expires overdue
+contracts). Run it daily:
+
+```cron
+# /etc/cron.d/hrms-notify — every morning 06:00
+0 6 * * * www-data DB_USER=hrms DB_PASS=******** php /var/www/hrms/bin/notify.php >> /var/log/hrms-notify.log 2>&1
+```
+
+Alerts are deduplicated (same alert repeats at most every 20 days). The warning
+window is the `alert_days_before_expiry` setting (System Settings, default 30).
+
+## 8. Backups
 
 ```cron
 # /etc/cron.d/hrms-backup — daily 02:00
@@ -108,7 +122,7 @@ PHP `mail()` is used.
 
 Keep at least 30 days, replicate off-site.
 
-## 8. Upgrades
+## 9. Upgrades
 
 1. Back up (step 7).
 2. `git pull`.

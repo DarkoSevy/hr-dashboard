@@ -376,6 +376,7 @@ CREATE TABLE applicants (
   id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   vacancy_id   INT UNSIGNED NOT NULL,
   full_name    VARCHAR(150) NOT NULL,
+  gender       ENUM('male','female') NULL,
   email        VARCHAR(150) NOT NULL,
   phone        VARCHAR(30)  NULL,
   cv_path      VARCHAR(255) NULL,

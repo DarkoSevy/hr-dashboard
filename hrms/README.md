@@ -32,7 +32,10 @@ immediately (Insight & Admin → User Accounts).
 | Talent | Vacancies, Applicants (funnel), Interviews, Offers, Performance reviews & KPIs, Goals, Training courses/sessions/participants with certificate expiry |
 | Fleet | Drivers (license/permit/medical expiry), Vehicles, Trips (fuel, ratings), Driver incidents (accidents, fines, warnings) |
 | Workplace | Internal requests (travel, salary advance, IT…), Assets & assignments, Disciplinary cases with appeals, Medical checkups, Incident reports, Announcements |
-| Admin | 14 canned HR reports with CSV export, role-based User Accounts (13 roles, 36 permissions), full Audit Trail, REST API (`/api/v1`), in-app + email notifications, optional email 2FA |
+| Admin | 14 canned HR reports with CSV export, role-based User Accounts (13 roles, 36 permissions), full Audit Trail, REST API (`/api/v1`), in-app + email notifications, optional email 2FA, System Settings UI |
+| Self-service | My Account (change password, contact info, 2FA toggle), My Payslips (printable/PDF), leave requests, GPS clock in/out, forgot-password email reset |
+| Automation | Daily cron notifier (`bin/notify.php`): contract/license/permit/medical/insurance/document/certificate expiry, probation ends, birthdays, training due, RSSB reminders; auto-marks absences and expires overdue contracts |
+| Visualization | Org chart (reporting tree + departments), HR month calendar (holidays, approved leave, trainings), one-click applicant→employee conversion |
 
 ## Layout
 

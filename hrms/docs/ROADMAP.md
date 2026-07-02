@@ -1,23 +1,23 @@
 # Future Enhancement Roadmap
 
+Already delivered (originally planned here): self-service password reset,
+scheduled cron notifier (`bin/notify.php`) with absence marking and contract
+expiry housekeeping, org chart, HR month calendar, payslip self-service portal
+with print-to-PDF, one-click applicant→employee conversion, and the System
+Settings UI.
+
 ## Phase 1 — Hardening (first quarter after go-live)
 
-* Password self-service reset (schema ready: `password_resets`).
 * TOTP authenticator-app 2FA in addition to email OTP.
 * Server-side pagination for very large registers (DataTables ajax mode).
-* PDF exports (payslips, offer letters, reports) via dompdf; branded templates.
+* Server-generated PDF exports (dompdf) for reports and offer letters; branded
+  templates (payslips already print to PDF via the browser).
 * Redis session + query cache when clustering.
 * Database migration runner (`database/migrations/`) with versioning.
 
 ## Phase 2 — Deeper HR automation
 
-* Scheduled notifier (cron) that emails upcoming birthdays, contract/probation
-  ends, license & medical expiries, training due and RSSB deadlines — all the
-  queries already power the dashboard; wrap them in a `bin/notify.php` cron.
-* Leave calendar view (team calendar, conflict highlighting) and carry-over
-  automation at year end.
-* Org-chart visualisation from `departments.parent_id` / `positions.reports_to`.
-* Payslip portal: publish locked payroll entries to employee self-service.
+* Leave carry-over automation at year end; team-calendar conflict highlighting.
 * Recruitment: public careers page posting `published` vacancies with online
   application form feeding `applicants`; offer-letter generation.
 * Onboarding/offboarding checklists (asset return, access revocation).

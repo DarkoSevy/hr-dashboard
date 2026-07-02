@@ -67,6 +67,7 @@ class AuthController extends Controller
         }
 
         Auth::login($user);
+        $this->enforcePasswordExpiry($user);
         redirect('dashboard');
     }
 
@@ -97,12 +98,104 @@ class AuthController extends Controller
         );
         unset($_SESSION['pending_2fa_user']);
         Auth::login($user);
+        $this->enforcePasswordExpiry($user);
         redirect('dashboard');
+    }
+
+    /** Route users with an expired password straight to the change form. */
+    private function enforcePasswordExpiry(array $user): void
+    {
+        if (Auth::passwordExpired($user)) {
+            flash('error', 'Your password has expired under the security policy — please choose a new one now.');
+            redirect('account');
+        }
     }
 
     public function logout(): void
     {
         Auth::logout();
         redirect('login');
+    }
+
+    // ------------------------------------------------------------ password reset
+
+    public function forgotForm(): void
+    {
+        View::render('auth/forgot', [], bare: true);
+    }
+
+    /** Email a one-hour reset link. Response is identical whether or not the
+     *  address exists, to avoid account enumeration. */
+    public function sendReset(): void
+    {
+        $email = trim($_POST['email'] ?? '');
+        $user = Database::fetch('SELECT * FROM users WHERE email = ? AND is_active = 1', [$email]);
+        if ($user) {
+            $token = bin2hex(random_bytes(32));
+            Database::insert('password_resets', [
+                'user_id' => $user['id'],
+                'token_hash' => hash('sha256', $token),
+                'expires_at' => date('Y-m-d H:i:s', time() + 3600),
+            ]);
+            $link = rtrim($GLOBALS['app_config']['app']['url'], '/') . '/reset?token=' . $token;
+            Mailer::send($user['email'], 'PTS HRMS password reset',
+                "A password reset was requested for your account. "
+                . "<a href=\"{$link}\">Click here to choose a new password</a>. "
+                . 'The link expires in 1 hour. If this wasn\'t you, ignore this email.');
+            Audit::log('password_reset_requested', 'users', (string) $user['id']);
+        }
+        flash('success', 'If that email is registered, a reset link has been sent.');
+        redirect('login');
+    }
+
+    public function resetForm(): void
+    {
+        $reset = $this->validResetRow($_GET['token'] ?? '');
+        if (!$reset) {
+            flash('error', 'This reset link is invalid or has expired.');
+            redirect('login');
+        }
+        View::render('auth/reset', ['token' => $_GET['token']], bare: true);
+    }
+
+    public function performReset(): void
+    {
+        $token = $_POST['token'] ?? '';
+        $reset = $this->validResetRow($token);
+        if (!$reset) {
+            flash('error', 'This reset link is invalid or has expired.');
+            redirect('login');
+        }
+        $new = $_POST['password'] ?? '';
+        if ($new !== ($_POST['confirm'] ?? '')) {
+            flash('error', 'Passwords do not match.');
+            redirect('reset?token=' . urlencode($token));
+        }
+        if (!Auth::validPassword($new)) {
+            flash('error', 'Password must be 8+ characters with upper, lower, digit and symbol.');
+            redirect('reset?token=' . urlencode($token));
+        }
+        Database::update('users', [
+            'password_hash' => password_hash($new, PASSWORD_BCRYPT),
+            'password_changed_at' => date('Y-m-d H:i:s'),
+            'failed_attempts' => 0,
+            'locked_until' => null,
+        ], (int) $reset['user_id']);
+        Database::update('password_resets', ['used_at' => date('Y-m-d H:i:s')], (int) $reset['id']);
+        Audit::log('password_reset', 'users', (string) $reset['user_id']);
+        flash('success', 'Password updated — sign in with your new password.');
+        redirect('login');
+    }
+
+    private function validResetRow(string $token): ?array
+    {
+        if ($token === '') {
+            return null;
+        }
+        return Database::fetch(
+            'SELECT * FROM password_resets
+             WHERE token_hash = ? AND used_at IS NULL AND expires_at > NOW()',
+            [hash('sha256', $token)]
+        );
     }
 }

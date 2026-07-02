@@ -85,9 +85,11 @@ return [
         'title' => 'Applicants', 'table' => 'applicants', 'icon' => 'people',
         'perm_view' => 'recruitment.view', 'perm_manage' => 'recruitment.manage',
         'list' => ['full_name', 'vacancy_id', 'email', 'phone', 'stage'],
+        'row_actions' => [['convert', 'person-plus', 'Convert to employee']],
         'fields' => [
             'vacancy_id'  => ['label' => 'Vacancy', 'type' => 'relation', 'relation' => ['job_vacancies', 'title'], 'required' => true],
             'full_name'   => ['label' => 'Full Name', 'type' => 'text', 'required' => true],
+            'gender'      => ['label' => 'Gender', 'type' => 'select', 'options' => ['male' => 'Male', 'female' => 'Female']],
             'email'       => ['label' => 'Email', 'type' => 'email', 'required' => true],
             'phone'       => ['label' => 'Phone', 'type' => 'text'],
             'cv_path'     => ['label' => 'CV (PDF)', 'type' => 'file', 'upload_dir' => 'recruitment'],
