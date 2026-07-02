@@ -1,0 +1,19 @@
+{
+    "name": "pts/hrms",
+    "description": "PTS Rwanda Human Resource Management System",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.1",
+        "ext-pdo": "*",
+        "ext-json": "*"
+    },
+    "suggest": {
+        "phpmailer/phpmailer": "SMTP email notifications (auto-detected by App\\Core\\Mailer when installed)"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    }
+}
