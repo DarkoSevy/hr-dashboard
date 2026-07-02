@@ -1,5 +1,21 @@
 # HR Dashboard
 
+## 🏢 PTS HRMS (new)
+
+The full enterprise **Human Resource Management System for Premier Transport &
+Tour Services Ltd (PTS Rwanda)** lives in [`hrms/`](hrms/) — a PHP 8 + MySQL +
+Bootstrap 5 MVC application covering employees, organization structure,
+recruitment, leave, attendance, payroll preparation, drivers, performance,
+training, documents, disciplinary, health & safety, assets, internal requests,
+reports, notifications, RBAC, audit trail and a REST API.
+
+* Quick start & module list: [`hrms/README.md`](hrms/README.md)
+* Docs (architecture, ERD, installation, user manual, API, roadmap): [`hrms/docs/`](hrms/docs/)
+
+---
+
+## Legacy prototype (below)
+
 A full-stack HR management system built with React (Vite) and PHP.
 
 ## 🚀 Quick Start
