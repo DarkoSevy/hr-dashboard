@@ -34,11 +34,13 @@ $nav = [
         ['applicants', 'people', 'Applicants', 'recruitment.view'],
         ['interviews', 'chat-square-text', 'Interviews', 'recruitment.view'],
         ['offers', 'envelope-check', 'Offers', 'recruitment.view'],
+        ['promotions', 'trophy', 'Promotions', 'employees.view'],
         ['performance', 'graph-up-arrow', 'Performance', 'performance.view'],
         ['goals', 'bullseye', 'Goals & KPIs', 'performance.view'],
         ['courses', 'mortarboard', 'Training Courses', 'training.view'],
         ['training-sessions', 'calendar-event', 'Training Sessions', 'training.view'],
         ['training-participants', 'person-check', 'Participants', 'training.view'],
+        ['separations', 'box-arrow-right', 'Separations', 'employees.view'],
     ],
     'Fleet' => [
         ['drivers', 'truck-front', 'Drivers', 'drivers.view'],

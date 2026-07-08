@@ -51,8 +51,9 @@ $fact = function (string $labelText, ?string $value) {
   <?php
   $tabs = ['overview' => 'Overview', 'documents' => 'Documents', 'leave' => 'Leave',
            'assets' => 'Assets', 'performance' => 'Performance', 'training' => 'Training',
-           'discipline' => 'Disciplinary'];
+           'discipline' => 'Disciplinary', 'career' => 'Career History'];
   if ($driver) $tabs['driver'] = 'Driver';
+  if ($separation ?? null) $tabs['separation'] = 'Separation';
   $first = true;
   foreach ($tabs as $key => $title): ?>
     <li class="nav-item"><button class="nav-link <?= $first ? 'active' : '' ?>" data-bs-toggle="tab" data-bs-target="#tab-<?= $key ?>"><?= $title ?></button></li>
@@ -252,4 +253,93 @@ $fact = function (string $labelText, ?string $value) {
     </div></div>
   </div>
   <?php endif ?>
+
+  <!-- Career History tab -->
+  <div class="tab-pane fade" id="tab-career">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0">Promotion & Career Moves</h6>
+          <a href="<?= url('promotions/create?employee_id=' . $employee['id']) ?>" class="btn btn-sm btn-emerald">
+            <i class="bi bi-plus-lg me-1"></i>Record Move
+          </a>
+        </div>
+        <?php if (!empty($promotions)): ?>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead><tr>
+                <th>Date</th><th>Type</th><th>From</th><th>To</th><th>Salary</th><th></th>
+              </tr></thead>
+              <tbody>
+              <?php foreach ($promotions as $pr): ?>
+                <tr>
+                  <td class="small text-nowrap"><?= e($pr['effective_date']) ?></td>
+                  <td><span class="badge text-bg-<?= match($pr['promotion_type']) {
+                      'promotion' => 'success', 'lateral_transfer' => 'info',
+                      'acting' => 'warning', 'demotion' => 'danger', default => 'secondary'
+                  } ?>"><?= label($pr['promotion_type']) ?></span></td>
+                  <td class="small text-muted"><?= e($pr['old_position'] ?? '—') ?></td>
+                  <td class="small fw-semibold"><?= e($pr['new_position']) ?></td>
+                  <td class="small text-nowrap">
+                    <?php if ($pr['new_salary'] !== null): ?>
+                      <?= number_format((float)$pr['new_salary'], 0) ?> RWF
+                    <?php else: echo '—'; endif ?>
+                  </td>
+                  <td><a href="<?= url('promotions/' . $pr['id']) ?>" class="btn btn-sm btn-link p-0">View</a></td>
+                </tr>
+              <?php endforeach ?>
+              </tbody>
+            </table>
+          </div>
+        <?php else: ?>
+          <p class="text-muted small mb-0">No promotion or career move records yet.</p>
+        <?php endif ?>
+      </div>
+    </div>
+  </div>
+
+  <!-- Separation tab (only shown when a separation exists) -->
+  <?php if (!empty($separation)): ?>
+  <div class="tab-pane fade" id="tab-separation">
+    <div class="card">
+      <div class="card-body">
+        <dl class="row mb-3">
+          <dt class="col-sm-4">Separation Type</dt>
+          <dd class="col-sm-8">
+            <span class="badge text-bg-<?= match($separation['separation_type']) {
+                'retirement' => 'info', 'resignation' => 'secondary',
+                'dismissal' => 'danger', 'deceased' => 'dark', default => 'warning'
+            } ?>"><?= label($separation['separation_type']) ?></span>
+          </dd>
+          <dt class="col-sm-4">Effective Date</dt>
+          <dd class="col-sm-8"><?= e($separation['effective_date']) ?></dd>
+          <?php if ($separation['notice_date']): ?>
+            <dt class="col-sm-4">Notice Date</dt>
+            <dd class="col-sm-8"><?= e($separation['notice_date']) ?></dd>
+          <?php endif ?>
+          <?php if ($separation['reason']): ?>
+            <dt class="col-sm-4">Reason</dt>
+            <dd class="col-sm-8"><?= nl2br(e($separation['reason'])) ?></dd>
+          <?php endif ?>
+          <dt class="col-sm-4">Clearance</dt>
+          <dd class="col-sm-8">
+            <span class="badge text-bg-<?= match($separation['clearance_status']) {
+                'completed' => 'success', 'in_progress' => 'warning', default => 'secondary'
+            } ?>"><?= label($separation['clearance_status']) ?></span>
+          </dd>
+          <dt class="col-sm-4">Rehire Eligible</dt>
+          <dd class="col-sm-8"><?= $separation['rehire_eligible'] ? '<span class="text-success">Yes</span>' : '<span class="text-danger">No</span>' ?></dd>
+          <?php if ($separation['final_pay_amount'] !== null): ?>
+            <dt class="col-sm-4">Final Pay</dt>
+            <dd class="col-sm-8"><?= number_format((float)$separation['final_pay_amount'], 0) ?> RWF <?= $separation['final_pay_date'] ? '(' . e($separation['final_pay_date']) . ')' : '' ?></dd>
+          <?php endif ?>
+        </dl>
+        <a href="<?= url('separations/' . $separation['id']) ?>" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-right me-1"></i>Full Separation Record
+        </a>
+      </div>
+    </div>
+  </div>
+  <?php endif ?>
+
 </div>

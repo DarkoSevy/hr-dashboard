@@ -98,7 +98,15 @@ class EmployeeController extends Controller
                  WHERE tp.employee_id = ? ORDER BY ts.start_date DESC', [$id]),
             'discipline' => Database::fetchAll(
                 'SELECT * FROM disciplinary_cases WHERE employee_id = ? ORDER BY case_date DESC', [$id]),
-            'driver' => Database::fetch('SELECT * FROM drivers WHERE employee_id = ?', [$id]),
+            'driver'     => Database::fetch('SELECT * FROM drivers WHERE employee_id = ?', [$id]),
+            'promotions' => Database::fetchAll(
+                "SELECT pr.*, op.title AS old_position, np.title AS new_position
+                 FROM promotions pr
+                 LEFT JOIN positions op ON op.id = pr.old_position_id
+                 JOIN positions np ON np.id = pr.new_position_id
+                 WHERE pr.employee_id = ? ORDER BY pr.effective_date DESC", [$id]),
+            'separation' => Database::fetch(
+                'SELECT * FROM separations WHERE employee_id = ? ORDER BY effective_date DESC LIMIT 1', [$id]),
         ]);
     }
 

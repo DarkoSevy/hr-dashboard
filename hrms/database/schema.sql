@@ -720,4 +720,52 @@ CREATE TABLE settings (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Promotions & career moves
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS promotions (
+  id                INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  employee_id       INT UNSIGNED NOT NULL,
+  effective_date    DATE NOT NULL,
+  promotion_type    ENUM('promotion','lateral_transfer','acting','demotion') NOT NULL DEFAULT 'promotion',
+  old_position_id   INT UNSIGNED DEFAULT NULL,
+  new_position_id   INT UNSIGNED NOT NULL,
+  old_department_id INT UNSIGNED DEFAULT NULL,
+  new_department_id INT UNSIGNED DEFAULT NULL,
+  old_salary        DECIMAL(14,2) DEFAULT NULL,
+  new_salary        DECIMAL(14,2) DEFAULT NULL,
+  reason            TEXT,
+  approved_by       INT UNSIGNED DEFAULT NULL,
+  created_by        INT UNSIGNED DEFAULT NULL,
+  created_at        DATETIME DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_prom_emp    FOREIGN KEY (employee_id)       REFERENCES employees(id)   ON DELETE CASCADE,
+  CONSTRAINT fk_prom_oldpos FOREIGN KEY (old_position_id)   REFERENCES positions(id)   ON DELETE SET NULL,
+  CONSTRAINT fk_prom_newpos FOREIGN KEY (new_position_id)   REFERENCES positions(id),
+  CONSTRAINT fk_prom_olddep FOREIGN KEY (old_department_id) REFERENCES departments(id) ON DELETE SET NULL,
+  CONSTRAINT fk_prom_newdep FOREIGN KEY (new_department_id) REFERENCES departments(id) ON DELETE SET NULL,
+  CONSTRAINT fk_prom_appby  FOREIGN KEY (approved_by)       REFERENCES employees(id)   ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Separations & offboarding
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS separations (
+  id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  employee_id          INT UNSIGNED NOT NULL,
+  separation_type      ENUM('resignation','retirement','dismissal','redundancy','contract_end','deceased','other') NOT NULL,
+  effective_date       DATE NOT NULL,
+  notice_date          DATE DEFAULT NULL,
+  reason               TEXT,
+  exit_interview_date  DATE DEFAULT NULL,
+  exit_interview_notes TEXT,
+  clearance_status     ENUM('pending','in_progress','completed') NOT NULL DEFAULT 'pending',
+  final_pay_amount     DECIMAL(14,2) DEFAULT NULL,
+  final_pay_date       DATE DEFAULT NULL,
+  rehire_eligible      TINYINT(1) NOT NULL DEFAULT 1,
+  notes                TEXT,
+  created_by           INT UNSIGNED DEFAULT NULL,
+  created_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_sep_emp FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
